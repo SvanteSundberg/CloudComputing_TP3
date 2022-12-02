@@ -6,6 +6,26 @@ AWS_REGION = "us-east-1a"
 KEY_PAIR_NAME = 'vockey'
 AMI_ID = 'ami-08c40ec9ead489470'  # Amazon Linux 2
 INSTANCE_TYPE = 't2.micro'
+USER_DATA = '''#!/bin/bash
+    sudo apt-get update
+    sudo mkdir -p /opt/mysqlcluster/home
+    cd /opt/mysqlcluster/home
+    sudo wget http://dev.mysql.com/get/Downloads/MySQL-Cluster-7.2/mysql-cluster-gpl-7.2.1-linux2.6-x86_64.tar.gz
+
+
+    sudo tar xvf mysql-cluster-gpl-7.2.1-linux2.6-x86_64.tar.gz
+    sudo ln -s mysql-cluster-gpl-7.2.1-linux2.6-x86_64 mysqlc
+
+    #set up paths globally
+
+    echo 'export MYSQLC_HOME=/opt/mysqlcluster/home/mysqlc' | sudo tee /etc/profile.d/mysqlc.sh
+    echo 'export PATH=$MYSQLC_HOME/bin:$PATH' | sudo tee -a /etc/profile.d/mysqlc.sh
+
+    source /etc/profile.d/mysqlc.sh
+
+    #install libncurses5
+    sudo apt-get update && sudo apt-get -y install libncurses5
+        '''
 
 ec2_RESOURCE = boto3.resource('ec2', region_name='us-east-1')
 ec2_CLIENT = boto3.client('ec2')
@@ -144,6 +164,7 @@ def SQLCluster(security_group_id):
             KeyName=KEY_PAIR_NAME,
             MinCount=1,
             MaxCount=1,
+            UserData=USER_DATA,
             TagSpecifications=[
                 {
                     'ResourceType': 'instance',
