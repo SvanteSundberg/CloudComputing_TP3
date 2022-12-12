@@ -1,0 +1,139 @@
+-----------MGM node--------------
+wget https://dev.mysql.com/get/Downloads/MySQL-Cluster-7.6/mysql-cluster-community-management-server_7.6.6-1ubuntu18.04_amd64.deb
+sudo dpkg -i mysql-cluster-community-management-server_7.6.6-1ubuntu18.04_amd64.deb
+sudo mkdir /var/lib/mysql-cluster
+sudo nano /var/lib/mysql-cluster/config.ini
+
+#ADD 
+---------------
+[ndbd default]
+NoOfReplicas=3	
+
+[ndb_mgmd]
+hostname=172.31.5.65 
+datadir=/var/lib/mysql-cluster 
+
+[ndbd]
+hostname=172.31.12.88 
+NodeId=2			
+datadir=/usr/local/mysql/data	
+
+[ndbd]
+hostname=172.31.11.81
+NodeId=3			
+datadir=/usr/local/mysql/data	
+
+[ndbd]
+hostname=172.31.14.170
+NodeId=4			
+datadir=/usr/local/mysql/data	
+
+[mysqld]
+hostname=172.31.5.65 
+----------------------
+sudo ndb_mgmd -f /var/lib/mysql-cluster/config.ini
+sudo pkill -f ndb_mgmd
+sudo nano /etc/systemd/system/ndb_mgmd.service
+#add 
+-------------
+[Unit]
+Description=MySQL NDB Cluster Management Server
+After=network.target auditd.service
+
+[Service]
+Type=forking
+ExecStart=/usr/sbin/ndb_mgmd -f /var/lib/mysql-cluster/config.ini
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+------------------------------
+sudo systemctl daemon-reload
+sudo systemctl enable ndb_mgmd
+sudo systemctl start ndb_mgmd
+------------------
+---------------
+---------Data nodes----------------
+wget https://dev.mysql.com/get/Downloads/MySQL-Cluster-7.6/mysql-cluster-community-data-node_7.6.6-1ubuntu18.04_amd64.deb
+sudo apt update
+sudo apt install libclass-methodmaker-perl
+
+sudo dpkg -i mysql-cluster-community-data-node_7.6.6-1ubuntu18.04_amd64.deb
+sudo nano /etc/my.cnf
+#add
+-----------
+[mysql_cluster]
+ndb-connectstring=172.31.5.65
+----------
+
+sudo mkdir -p /usr/local/mysql/data
+sudo ndbd
+
+sudo pkill -f ndbd
+sudo nano /etc/systemd/system/ndbd.service
+#add
+--------------
+[Unit]
+Description=MySQL NDB Data Node Daemon
+After=network.target auditd.service
+
+[Service]
+Type=forking
+ExecStart=/usr/sbin/ndbd
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+----------------------------
+sudo systemctl daemon-reload
+sudo systemctl enable ndbd
+sudo systemctl start ndbd
+sudo systemctl status ndbd
+
+-----------
+-----------
+-----Back on MGM node---------
+cd ~
+wget https://dev.mysql.com/get/Downloads/MySQL-Cluster-7.6/mysql-cluster_7.6.6-1ubuntu18.04_amd64.deb-bundle.tar
+mkdir install
+tar -xvf mysql-cluster_7.6.6-1ubuntu18.04_amd64.deb-bundle.tar -C install/
+cd install
+sudo apt update
+sudo apt install libaio1 libmecab2
+
+sudo dpkg -i mysql-common_7.6.6-1ubuntu18.04_amd64.deb
+sudo dpkg -i mysql-cluster-community-client_7.6.6-1ubuntu18.04_amd64.deb
+sudo dpkg -i mysql-client_7.6.6-1ubuntu18.04_amd64.deb
+----------
+sudo dpkg -i mysql-cluster-community-server_7.6.6-1ubuntu18.04_amd64.deb ## password is set to password
+
+sudo dpkg -i mysql-server_7.6.6-1ubuntu18.04_amd64.deb
+
+sudo nano /etc/mysql/my.cnf
+#ADD 
+----------
+[mysqld]
+ndbcluster                    
+
+[mysql_cluster]
+ndb-connectstring=172.31.5.65
+------------------------------
+sudo systemctl restart mysql
+---------------------------------
+--------Running benchmarks-----------
+cd /home/ubuntu
+wget http://downloads.mysql.com/docs/sakila-db.tar.gz && tar -xzf sakila-db.tar.gz
+
+mysql -u root -p # enter password
+# in sql
+SOURCE /home/ubuntu/sakila-db/sakila-schema.sql;
+SOURCE /home/ubuntu/sakila-db/sakila-data.sql; USE sakila;
+exit 
+
+sudo apt-get install sysbench
+sysbench /usr/share/sysbench/oltp_read_write.lua --table-size=1000000 --db-driver=mysql --mysql-db=sakila --mysql-user=root --mysql-password=password prepare
+sysbench /usr/share/sysbench/oltp_read_write.lua --table-size=1000000 --db-driver=mysql --threads=6 --time=60 --max-requests=0 --mysql-db=sakila --mysql-user=root --mysql-password=password run
