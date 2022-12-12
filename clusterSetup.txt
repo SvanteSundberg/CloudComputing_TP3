@@ -1,0 +1,193 @@
+# On Mgmt_Node
+
+1. Install cluster manager by running:
+    wget https://dev.mysql.com/get/Downloads/MySQL-Cluster-7.6/mysql-cluster-community-management-server_7.6.6-1ubuntu18.04_amd64.deb
+    sudo dpkg -i mysql-cluster-community-management-server_7.6.6-1ubuntu18.04_amd64.deb
+
+2. Configurate cluster manager by running:
+    sudo mkdir /var/lib/mysql-cluster
+    sudo nano /var/lib/mysql-cluster/config.ini
+
+3. Add the following to config.ini:
+
+    [ndbd default]
+    # Number of replicas
+    NoOfReplicas=3	
+
+    [ndb_mgmd]
+    # Replace hostname with the private IP for the Mgmt_Node
+    hostname=172.31.5.65 
+    datadir=/var/lib/mysql-cluster 
+
+    [ndbd]
+    # Replace hostname with the private IP for Data_Node1
+    hostname=172.31.12.88 
+    NodeId=2			
+    datadir=/usr/local/mysql/data	
+
+    [ndbd]
+    # Replace hostname with the private IP for Data_Node2
+    hostname=172.31.11.81
+    NodeId=3			
+    datadir=/usr/local/mysql/data	
+
+    [ndbd]
+    # Replace hostname with the private IP for Data_Node3
+    hostname=172.31.14.170
+    NodeId=4			
+    datadir=/usr/local/mysql/data	
+
+    [mysqld]
+    # Replace hostname with the private IP for the Mgmt_Node
+    hostname=172.31.5.65 
+
+4. Start the cluster manager by running:
+    sudo ndb_mgmd -f /var/lib/mysql-cluster/config.ini
+
+5. Next steps are for enable systeml service to start cluster manager automatically on boot
+6. Kill the running server by running:
+    sudo pkill -f ndb_mgmd
+
+7.Edit the system unit file by running:
+    sudo nano /etc/systemd/system/ndb_mgmd.service
+
+8. Add the following to ndb_mgmd.service: 
+
+    [Unit]
+    Description=MySQL NDB Cluster Management Server
+    After=network.target auditd.service
+
+    [Service]
+    Type=forking
+    ExecStart=/usr/sbin/ndb_mgmd -f /var/lib/mysql-cluster/config.ini
+    ExecReload=/bin/kill -HUP $MAINPID
+    KillMode=process
+    Restart=on-failure
+
+    [Install]
+    WantedBy=multi-user.target
+
+9. Reload the system manager configuration and start it by running the following commands:
+    sudo systemctl daemon-reload
+    sudo systemctl enable ndb_mgmd
+    sudo systemctl start ndb_mgmd
+
+10. Check if cluster manager is running with:
+    sudo systemctl status ndbd
+
+
+
+# On all Data_Nodes
+
+1. Get the cluster node binaries and install dependencies by running:
+    wget https://dev.mysql.com/get/Downloads/MySQL-Cluster-7.6/mysql-cluster-community-data-node_7.6.6-1ubuntu18.04_amd64.deb
+    sudo apt update
+    sudo apt install libclass-methodmaker-perl
+
+2. Install the data node binaries by running:
+    sudo dpkg -i mysql-cluster-community-data-node_7.6.6-1ubuntu18.04_amd64.deb
+
+3. Add configurations parameters for the data nodes by editing my.cnf:
+    sudo nano /etc/my.cnf
+
+4. Add the following:
+
+    [mysql_cluster]
+    # Replace with private IP of Mgmt_Node
+    ndb-connectstring=172.31.5.65
+
+5. Create the data directory for the data node:
+    sudo mkdir -p /usr/local/mysql/data
+
+6. Start the data node:
+    sudo ndbd
+
+7. Next steps are for enable systeml service to the data node deamon automatically on boot
+8. Kill the running ndbd:
+    sudo pkill -f ndbd
+
+9. Edit the system unit file by running:
+    sudo nano /etc/systemd/system/ndbd.service
+
+10. Add the following to ndbd.service: 
+
+    [Unit]
+    Description=MySQL NDB Data Node Daemon
+    After=network.target auditd.service
+
+    [Service]
+    Type=forking
+    ExecStart=/usr/sbin/ndbd
+    ExecReload=/bin/kill -HUP $MAINPID
+    KillMode=process
+    Restart=on-failure
+
+    [Install]
+    WantedBy=multi-user.target
+
+11. Reload the system manager configuration and start it by running the following commands:
+    sudo systemctl daemon-reload
+    sudo systemctl enable ndbd
+    sudo systemctl start ndbd
+
+12. Check if data node is running with:
+    sudo systemctl status ndbd
+
+
+
+# Back on MGM node
+
+1. Download and extract the MySql server archive to an installation directory
+    cd ~
+    wget https://dev.mysql.com/get/Downloads/MySQL-Cluster-7.6/mysql-cluster_7.6.6-1ubuntu18.04_amd64.deb-bundle.tar
+    mkdir install
+    tar -xvf mysql-cluster_7.6.6-1ubuntu18.04_amd64.deb-bundle.tar -C install/
+2. Install necessary dependencies for installing MySQL server binaries:
+    cd install
+    sudo apt update
+    sudo apt install libaio1 libmecab2
+3. Install MySQL cluster dependencies by running:
+    sudo dpkg -i mysql-common_7.6.6-1ubuntu18.04_amd64.deb
+    sudo dpkg -i mysql-cluster-community-client_7.6.6-1ubuntu18.04_amd64.deb
+    sudo dpkg -i mysql-client_7.6.6-1ubuntu18.04_amd64.deb
+    sudo dpkg -i mysql-cluster-community-server_7.6.6-1ubuntu18.04_amd64.deb ## password is set to password
+4. Install MySQL server binary:
+    sudo dpkg -i mysql-server_7.6.6-1ubuntu18.04_amd64.deb
+5. Configurate server installation:
+    sudo nano /etc/mysql/my.cnf
+6. Add the following to my.cnf
+    [mysqld]
+    ndbcluster                    
+
+    [mysql_cluster]
+    # Replace with private IP of Mgmt_Node
+    ndb-connectstring=172.31.5.65
+
+6. Restart MySQL server for changes to have effect:
+    sudo systemctl restart mysql
+
+
+
+# Bencharking MySQL cluster with sysbench on SakilaDB
+# On Mgmt_Node
+
+1. Download the SakilaDB database and extract it:
+    cd /home/ubuntu
+    wget http://downloads.mysql.com/docs/sakila-db.tar.gz && tar -xzf sakila-db.tar.gz
+
+2. Login to MySQL:
+    mysql -u root -p # enter password
+
+3. Once logged in, run the following queries to load and use the sakiladb
+    SOURCE /home/ubuntu/sakila-db/sakila-schema.sql;
+    SOURCE /home/ubuntu/sakila-db/sakila-data.sql; USE sakila;
+    exit 
+
+4. Install sysbench:
+    sudo apt-get install sysbench
+
+5. Prepare the sakiladb for testing:
+    sysbench /usr/share/sysbench/oltp_read_write.lua --table-size=1000000 --db-driver=mysql --mysql-db=sakila --mysql-user=root --mysql-password=password prepare
+
+6. Run the benchmark with:
+    sysbench /usr/share/sysbench/oltp_read_write.lua --table-size=1000000 --db-driver=mysql --threads=6 --time=60 --max-requests=0 --mysql-db=sakila --mysql-user=root --mysql-password=password run
