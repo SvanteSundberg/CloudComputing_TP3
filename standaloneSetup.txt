@@ -1,0 +1,26 @@
+# Installing SQLstandalone server
+
+1. Use putty to SSH to the standAlone EC2 instance
+2. Run 'sudo apt-get update'
+3. Run 'sudo apt-get -y install mysql-server'
+4. Run 'sudo mysql' to login to MySQL
+5. Change the root password to 'password' by running:
+    ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'password';
+6. Exit mysql by running 'exit'
+
+# Setting up sakila database
+
+7. Run 'wget http://downloads.mysql.com/docs/sakila-db.tar.gz && tar -xzf sakila-db.tar.gz'
+8. Login as root in mysql and run the following queries:
+   SOURCE /home/ubuntu/sakila-db/sakila-schema.sql;
+   SOURCE /home/ubuntu/sakila-db/sakila-data.sql;
+   USE sakila;
+9. Exit mysql by running 'exit'
+
+# Installing and running sysbench with a read and write test
+
+10. Run 'sudo apt-get install sysbench'
+11. Prepare sakilda-db for testing with:
+    sysbench /usr/share/sysbench/oltp_read_write.lua --table-size=1000000 --mysql-db=sakila --mysql-user=root --mysql-password=password prepare
+12. Run the benchmarking with:
+    sysbench /usr/share/sysbench/oltp_read_write.lua --table-size=1000000 --threads=6 --time=60 --max-requests=0 --mysql-db=sakila --mysql-user=root --mysql-password=password run
