@@ -28,7 +28,7 @@ try:
     print('Removing VPC ({}) from AWS'.format(vpcid))
 
     vpc = ec2_RESSOURCE.Vpc(vpcid)
-    # delete our endpoints
+    # Delete endpoints
     for ep in ec2_CLIENT.describe_vpc_endpoints(
             Filters=[{
                 'Name': 'vpc-id',
@@ -51,7 +51,7 @@ try:
     security_groups = security_groups_dict['SecurityGroups']
     L = []
     for groupobj in security_groups:
-        # We don't want to remove the default security group
+        # Does not remove the default security group
         if groupobj['GroupName'] != 'default':
             L.append(groupobj['GroupId'])
     for elm in L:
