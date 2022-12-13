@@ -1,5 +1,7 @@
 # CloudComputing_TP3
 
+_Disclaimer: This project is used for testing purposes only. For setting up MySQL in a production environment additional configurations are recommended._
+
 ## Benchmarking MySQL standalone vs MySQL cluster on AWS
 
 Use this repository to compare MySQL as standalone vs. cluster.
