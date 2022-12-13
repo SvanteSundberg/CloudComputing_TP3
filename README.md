@@ -11,7 +11,7 @@ This project uses sakila-db as a database and Sysbench as benchmarking tool.
 
 ### First steps
 
-1. Create a file called **creds.txt** and copy your AWS credentials into it
+1. In the working directory, create a file called **creds.txt** and copy your AWS credentials into it
 2. Download **labsuser.pem** file and put it in the working directory
 3. Execute **./script.sh** to launch all the necessary instances
 4. Note down the private IP adresses that is printed by the script
