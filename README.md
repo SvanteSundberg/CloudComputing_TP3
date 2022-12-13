@@ -1,26 +1,26 @@
 # CloudComputing_TP3
 
-# Installing SQLstandalone
+## Benchmarking MySQL standalone vs MySQL cluster on AWS
 
-1. Use putty to ssh to instance
-2. Run 'sudo apt-get update'
-3. Run 'sudo apt-get -y install mysql-server'
-4. Run 'sudo mysql'
-5. Set the root password to 'password' by running ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'password';
-6. Exit mysql
+Use this repository to compare MySQL as standalone vs. cluster. This project uses sakila-db as a database and Sysbench as benchmarking tool.
 
-# Setting up sakila database
+**Prerequisite**: Python, Boto3, AWS Cli
 
-7. run wget http://downloads.mysql.com/docs/sakila-db.tar.gz && tar -xzf sakila-db.tar.gz
-8. login as root in mysqgl and run the following queries:
-   SOURCE /home/ubuntu/sakila-db/sakila-schema.sql;
-   SOURCE /home/ubuntu/sakila-db/sakila-data.sql;
-   USE sakila;
+### First steps
 
-# Setting up and running sysbench with a read and write
+1. Copy your AWS credentials into creds.txt
+2. Download labsuser.pem file and put it in the working directory
+3. Execute ./script.sh to launch all the necessary instances
+4. Note down the private IP adresses that is printed by the script
 
-9.  sudo apt-get install sysbench
-10. prepare sakilda-db for testing with:
-    sysbench /usr/share/sysbench/oltp_read_write.lua --table-size=1000000 --mysql-db=sakila --mysql-user=root --mysql-password=password prepare
-11. Run the benchmarking with:
-    sysbench /usr/share/sysbench/oltp_read_write.lua --table-size=1000000 --threads=6 --time=60 --max-requests=0 --mysql-db=sakila --mysql-user=root --mysql-password=password run
+### MySQL Standalone
+
+Instructions for setting up a MySQL standalone server and benchmark it can be found in **standaloneSetup.txt**.
+
+### MySQL cluster
+
+Instructions for setting up a MySQL cluster and benchmark it can be found in **clusterSetup.txt**.
+
+### Removing instances
+
+The remove_all.py script can be executed to remove the instances, Vpc and security group created when running ./script.sh
