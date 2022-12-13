@@ -7,4 +7,4 @@ pip3 install paramiko
 cat creds.txt > ~/.aws/credentials
 chmod 400 labsuser.pem
 
-python launchEC2.py
+python setupSQL.py
