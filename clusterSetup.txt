@@ -73,7 +73,7 @@
     sudo systemctl start ndb_mgmd
 
 10. Check if cluster manager is running with:
-    sudo systemctl status ndbd
+    sudo systemctl status ndb_mgmd
 
 
 
